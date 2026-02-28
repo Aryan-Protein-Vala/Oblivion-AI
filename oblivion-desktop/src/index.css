@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* ── Oblivion AI — Monochrome Design System ── */
+
+@theme {
+  --font-sans: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+}
+
+/* ── Reset ── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #000000;
+  --bg-surface: #0a0a0a;
+  --bg-elevated: #111111;
+  --bg-hover: #161616;
+  --bg-active: #1a1a1a;
+
+  --border-subtle: #1a1a1a;
+  --border-default: #262626;
+  --border-hover: #404040;
+  --border-active: #525252;
+
+  --text-primary: #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #737373;
+  --text-muted: #525252;
+
+  --accent: #ffffff;
+  --accent-dim: #d4d4d4;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* ── Selection ── */
+::selection {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* ── Focus ── */
+:focus-visible {
+  outline: 1px solid var(--border-active);
+  outline-offset: 1px;
+}
+
+/* ── Tauri drag region ── */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ── Input reset ── */
+input, textarea {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: inherit;
+  font: inherit;
+}
+
+/* ── Animations ── */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
