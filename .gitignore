@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+**/node_modules/
+
+# Environment
+.env
+
+# Build output
+dist
+
+# OS
+.DS_Store
+**/.DS_Store
+
+# IDE
+.idea
+.vscode/
+
+# Test coverage
+coverage
+
+# Python
+__pycache__/
+*.pyc
+
+# Lock files (generated)
+pnpm-lock.yaml
+bun.lock
+
+# Build info
+.tsbuildinfo
+.pnpm-store
+
+# Tauri build output (future)
+src-tauri/target/
