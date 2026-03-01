@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOblivionAgent, type AgentMessage } from "./hooks/useOblivionAgent";
+import { useSystemContext, formatContextForPrompt } from "./hooks/useSystemContext";
 
 /* ─── Message Bubble ─── */
 function MessageBubble({ message }: { message: AgentMessage }) {
@@ -32,7 +33,6 @@ function MessageBubble({ message }: { message: AgentMessage }) {
           fontStyle: isSystem ? "italic" : "normal",
         }}
       >
-        {/* Role label */}
         {!isSystem && (
           <div
             className="text-[9px] uppercase tracking-[0.2em] mb-1.5 font-light"
@@ -41,11 +41,7 @@ function MessageBubble({ message }: { message: AgentMessage }) {
             {isUser ? "You" : "Oblivion"}
           </div>
         )}
-
-        {/* Message text */}
         <div className="whitespace-pre-wrap break-words">{message.text}</div>
-
-        {/* Streaming indicator */}
         {message.state === "streaming" && (
           <motion.span
             className="inline-block ml-1"
@@ -65,31 +61,28 @@ function MessageBubble({ message }: { message: AgentMessage }) {
 function App() {
   const { connectionState, messages, serverVersion, sendMessage } =
     useOblivionAgent();
+  const systemContext = useSystemContext();
   const [input, setInput] = useState("");
   const [showWelcome, setShowWelcome] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  /* Auto-scroll on new messages */
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  /* Hide welcome when first message arrives */
   useEffect(() => {
     if (messages.length > 0 && messages.some((m) => m.role !== "system")) {
       setShowWelcome(false);
     }
   }, [messages]);
 
-  /* Focus input on mount */
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  /* Cmd+K to focus */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -103,7 +96,9 @@ function App() {
 
   const handleSend = () => {
     if (!input.trim()) return;
-    sendMessage(input);
+    // Silently inject system context into the gateway payload
+    const context = formatContextForPrompt(systemContext);
+    sendMessage(input, context || undefined);
     setInput("");
   };
 
@@ -114,7 +109,6 @@ function App() {
     }
   };
 
-  /* Connection indicator */
   const connectionDot = {
     disconnected: "#333333",
     connecting: "#525252",
@@ -126,6 +120,21 @@ function App() {
     connecting: "Connecting…",
     connected: serverVersion ? `v${serverVersion}` : "Online",
   }[connectionState];
+
+  /* Build observation string for status bar */
+  const observationText = systemContext.activeWindow?.app_name
+    ? `${systemContext.activeWindow.app_name}${
+        systemContext.activeWindow.window_title
+          ? ` — ${systemContext.activeWindow.window_title}`
+          : ""
+      }`
+    : null;
+
+  const gitText = systemContext.gitContext?.is_git_repo
+    ? `${systemContext.gitContext.repo_root.split("/").pop() || "repo"} (${
+        systemContext.gitContext.branch
+      }) [${systemContext.gitContext.status}]`
+    : null;
 
   return (
     <div className="h-full w-full flex flex-col" style={{ background: "#000000" }}>
@@ -145,7 +154,6 @@ function App() {
         >
           Oblivion AI
         </span>
-        {/* Connection indicator */}
         <div className="flex items-center gap-1.5 titlebar-no-drag">
           <div
             className="w-1.5 h-1.5 rounded-full transition-colors duration-500"
@@ -166,7 +174,6 @@ function App() {
         className="flex-1 overflow-y-auto px-5 py-4"
         style={{ scrollBehavior: "smooth" }}
       >
-        {/* Welcome screen */}
         <AnimatePresence>
           {showWelcome && (
             <motion.div
@@ -216,7 +223,6 @@ function App() {
           )}
         </AnimatePresence>
 
-        {/* Messages */}
         {!showWelcome && (
           <div className="max-w-[640px] mx-auto">
             {messages.map((msg) => (
@@ -227,10 +233,7 @@ function App() {
       </div>
 
       {/* ── Command Bar ── */}
-      <div
-        className="px-4 py-3"
-        style={{ borderTop: "1px solid #111111" }}
-      >
+      <div className="px-4 py-3" style={{ borderTop: "1px solid #111111" }}>
         <div
           className="flex items-center gap-3 px-4 py-3 max-w-[640px] mx-auto transition-all duration-300"
           style={{
@@ -247,7 +250,6 @@ function App() {
             (e.currentTarget as HTMLElement).style.background = "#000000";
           }}
         >
-          {/* Bolt icon */}
           <svg
             width="14"
             height="14"
@@ -259,7 +261,6 @@ function App() {
           >
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
-
           <input
             ref={inputRef}
             value={input}
@@ -274,8 +275,6 @@ function App() {
             className="flex-1 text-sm font-light placeholder-[#333] disabled:opacity-30"
             style={{ color: "#fafafa" }}
           />
-
-          {/* Send / Shortcut badge */}
           {input.trim() ? (
             <button
               onClick={handleSend}
@@ -299,10 +298,7 @@ function App() {
           ) : (
             <div
               className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-light"
-              style={{
-                border: "1px solid #1a1a1a",
-                color: "#333",
-              }}
+              style={{ border: "1px solid #1a1a1a", color: "#333" }}
             >
               ⌘K
             </div>
@@ -310,16 +306,20 @@ function App() {
         </div>
       </div>
 
-      {/* ── Status Bar ── */}
+      {/* ── Status Bar with System Context ── */}
       <div
         className="flex items-center justify-between px-5 py-2"
         style={{ borderTop: "1px solid #0a0a0a" }}
       >
         <div className="flex items-center gap-4">
+          {/* Engine / Memory / Context indicators */}
           {[
             { label: "Engine", alive: connectionState === "connected" },
             { label: "Memory", alive: false },
-            { label: "Context", alive: false },
+            {
+              label: "Context",
+              alive: !!systemContext.activeWindow?.app_name,
+            },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div
@@ -335,11 +335,35 @@ function App() {
             </div>
           ))}
         </div>
-        <div
-          className="text-[9px] font-light tracking-wide font-mono"
-          style={{ color: "#262626" }}
-        >
-          ws://localhost:18789
+
+        {/* Observation text */}
+        <div className="flex items-center gap-3 overflow-hidden">
+          {observationText && (
+            <span
+              className="text-[9px] font-light truncate max-w-[200px]"
+              style={{ color: "#262626" }}
+              title={observationText}
+            >
+              👁 {observationText}
+            </span>
+          )}
+          {gitText && (
+            <span
+              className="text-[9px] font-light font-mono truncate max-w-[180px]"
+              style={{ color: "#262626" }}
+              title={gitText}
+            >
+              ⎇ {gitText}
+            </span>
+          )}
+          {!observationText && !gitText && (
+            <span
+              className="text-[9px] font-light font-mono"
+              style={{ color: "#1a1a1a" }}
+            >
+              ws://localhost:18789
+            </span>
+          )}
         </div>
       </div>
     </div>

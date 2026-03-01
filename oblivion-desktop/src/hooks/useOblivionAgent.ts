@@ -321,12 +321,14 @@ export function useOblivionAgent() {
     }
   }, [addSystemMessage, handleChatEvent]);
 
-  /** Send a chat message to the gateway */
+  /** Send a chat message to the gateway.
+   *  Optional `context` is silently prepended to the gateway payload
+   *  but NOT shown in the local message thread. */
   const sendMessage = useCallback(
-    (text: string) => {
+    (text: string, context?: string) => {
       if (!text.trim()) return;
 
-      // Add user message immediately
+      // Add user message immediately (clean, no context prefix)
       const userMsg: AgentMessage = {
         id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         role: "user",
@@ -336,6 +338,11 @@ export function useOblivionAgent() {
       };
       setMessages((prev) => [...prev, userMsg]);
 
+      // Build the message payload with silent context injection
+      const payload = context
+        ? `${text.trim()}${context}`
+        : text.trim();
+
       // Send via gateway protocol
       const frame: RequestFrame = {
         type: "req",
@@ -343,7 +350,7 @@ export function useOblivionAgent() {
         method: "chat.send",
         params: {
           sessionKey: sessionKeyRef.current,
-          message: text.trim(),
+          message: payload,
           idempotencyKey: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         },
       };
